@@ -8,13 +8,14 @@ Une plateforme d'apprentissage gamifiée pour le Numérique Inclusif Responsable
 
 ## 📹 Vidéo Démo
 
-<!-- TODO: Ajouter le lien de la vidéo démo ici -->
-> **🎬 [Voir la démo complète de l'application](/demo/demo.mp4)**
+> **🎬 [Voir la démo complète de l'application](https://drive.google.com/file/d/1crB3_W7nSlxqJOZrqosWpAaCMlGSMm6w/view?usp=sharing)**
 
-<!-- Alternative: Embed direct -->
-<!-- 
-[![Démo Podium](thumbnail.png)](/demo/demo.mp4)
--->
+<div align="center">
+  <a href="https://drive.google.com/file/d/1crB3_W7nSlxqJOZrqosWpAaCMlGSMm6w/view?usp=sharing">
+    <img src="https://drive.google.com/thumbnail?id=1crB3_W7nSlxqJOZrqosWpAaCMlGSMm6w&sz=w1000" alt="Démo Podium NIRD" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+  </a>
+  <p><em>Cliquez sur l'image pour voir la vidéo complète</em></p>
+</div>
 
 ---
 
