@@ -1,0 +1,359 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CAPTAIN
+  DEVELOPER
+  VERIFIER
+  PEDAGOGUE
+}
+
+enum League {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  RESILIENCE
+}
+
+enum LessonType {
+  QUIZ
+  PRACTICE
+  STORY
+  READING
+}
+
+enum NIRDDomain {
+  ACCESSIBILITY
+  OPEN_SOURCE
+  SUSTAINABILITY
+  DIGITAL_SOBRIETY
+  RESPONSIBLE_DEVOPS
+}
+
+enum MissionStatus {
+  AVAILABLE
+  IN_PROGRESS
+  SUBMITTED
+  VERIFIED
+  REJECTED
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum StoreItemType {
+  BOOST_XP
+  RESTORE_HEART
+  FREEZE_STREAK
+  CONTENT_UNLOCK
+}
+
+enum EventType {
+  LESSON_COMPLETED
+  BADGE_EARNED
+  LEVEL_UP
+  STREAK_MILESTONE
+  MISSION_SUBMITTED
+  MISSION_VERIFIED
+  LEAGUE_PROMOTED
+  LEAGUE_DEMOTED
+  TEAM_JOINED
+}
+
+model User {
+  id                String   @id @default(cuid())
+  login             String   @unique
+  name              String
+  email             String?
+  avatar            String?
+  roles             UserRole[]
+  accessibilityPrefs Json    @default("{\"highContrast\":false,\"reducedMotion\":false,\"fontSize\":\"medium\",\"screenReader\":false}")
+  hearts            Int      @default(5)
+  streak            Int      @default(0)
+  lastActiveDate    DateTime @default(now())
+  xpTotal           Int      @default(0)
+  gems              Int      @default(0)
+  league            League   @default(BRONZE)
+  teamId            String?
+  team              Team?    @relation(fields: [teamId], references: [id])
+  githubId          String?  @unique
+  password          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  lessonAttempts    LessonAttempt[]
+  submissions       Submission[]
+  userBadges        UserBadge[]
+  domainProgress    DomainProgress[]
+  activeBoosters    ActiveBooster[]
+  eventLogs         EventLog[]
+  
+  // Following/Followers relations
+  following         Follow[] @relation("UserFollowing")
+  followers         Follow[] @relation("UserFollowers")
+
+  @@index([league])
+  @@index([teamId])
+}
+
+model Follow {
+  id            String   @id @default(cuid())
+  followerId    String
+  follower      User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId   String
+  following     User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Team {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  settings        Json     @default("{\"accessibility\":{\"highContrast\":false,\"reducedMotion\":false,\"fontSize\":\"medium\",\"screenReader\":false},\"goalsNIRD\":[],\"weeklyTargetXP\":1000}")
+  totalPoints     Int      @default(0)
+  momentumScore   Float    @default(0)
+  teamXP          Int      @default(0)
+  inviteCode      String   @unique @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  members         User[]
+  submissions     Submission[]
+  teamBadges      TeamBadge[]
+  eventLogs       EventLog[]
+
+  @@index([teamXP])
+}
+
+model Unit {
+  id              String      @id @default(cuid())
+  title           String
+  description     String
+  domain          NIRDDomain
+  order           Int
+  isCheckpoint    Boolean     @default(false)
+  requiredUnitId  String?
+  requiredUnit    Unit?       @relation("UnitRequirement", fields: [requiredUnitId], references: [id])
+  dependentUnits  Unit[]      @relation("UnitRequirement")
+  createdAt       DateTime    @default(now())
+
+  lessons         Lesson[]
+
+  @@unique([domain, order])
+}
+
+model Lesson {
+  id              String      @id @default(cuid())
+  unitId          String
+  unit            Unit        @relation(fields: [unitId], references: [id])
+  title           String
+  description     String
+  type            LessonType
+  difficulty      Int         @default(1)
+  xpReward        Int         @default(10)
+  heartCost       Int         @default(0)
+  content         Json
+  order           Int
+  createdAt       DateTime    @default(now())
+
+  attempts        LessonAttempt[]
+
+  @@unique([unitId, order])
+  @@index([unitId])
+}
+
+model LessonAttempt {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  lessonId        String
+  lesson          Lesson      @relation(fields: [lessonId], references: [id])
+  result          String      // PASS or FAIL
+  errorsCount     Int         @default(0)
+  xpEarned        Int         @default(0)
+  heartsUsed      Int         @default(0)
+  answers         Json?
+  timestamp       DateTime    @default(now())
+
+  @@index([userId])
+  @@index([lessonId])
+}
+
+model Mission {
+  id              String          @id @default(cuid())
+  title           String
+  description     String
+  categoryNIRD    NIRDDomain
+  points          Int
+  xpReward        Int
+  gemsReward      Int             @default(0)
+  requirements    Json
+  status          MissionStatus   @default(AVAILABLE)
+  difficulty      Int             @default(1)
+  createdAt       DateTime        @default(now())
+
+  submissions     Submission[]
+
+  @@index([categoryNIRD])
+  @@index([status])
+}
+
+model Submission {
+  id              String            @id @default(cuid())
+  teamId          String
+  team            Team              @relation(fields: [teamId], references: [id])
+  missionId       String
+  mission         Mission           @relation(fields: [missionId], references: [id])
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  status          SubmissionStatus  @default(PENDING)
+  repositoryUrl   String?
+  ciRunId         String?
+  ciResult        Json?
+  verifierId      String?
+  verifierNotes   String?
+  timestamp       DateTime          @default(now())
+  verifiedAt      DateTime?
+
+  @@index([teamId])
+  @@index([missionId])
+  @@index([status])
+}
+
+model Badge {
+  id              String      @id @default(cuid())
+  title           String
+  description     String
+  icon            String
+  criteria        Json
+  rarity          String      @default("COMMON")
+  createdAt       DateTime    @default(now())
+
+  userBadges      UserBadge[]
+  teamBadges      TeamBadge[]
+}
+
+model UserBadge {
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  badgeId         String
+  badge           Badge       @relation(fields: [badgeId], references: [id])
+  earnedAt        DateTime    @default(now())
+
+  @@id([userId, badgeId])
+}
+
+model TeamBadge {
+  teamId          String
+  team            Team        @relation(fields: [teamId], references: [id])
+  badgeId         String
+  badge           Badge       @relation(fields: [badgeId], references: [id])
+  earnedAt        DateTime    @default(now())
+
+  @@id([teamId, badgeId])
+}
+
+model DomainProgress {
+  id                String      @id @default(cuid())
+  userId            String
+  user              User        @relation(fields: [userId], references: [id])
+  domain            NIRDDomain
+  xp                Int         @default(0)
+  level             Int         @default(1)
+  lessonsCompleted  Int         @default(0)
+  missionsCompleted Int         @default(0)
+
+  @@unique([userId, domain])
+  @@index([userId])
+}
+
+model ActiveBooster {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id])
+  type            StoreItemType
+  expiresAt       DateTime
+  createdAt       DateTime        @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model StoreItem {
+  id              String          @id @default(cuid())
+  title           String
+  description     String
+  type            StoreItemType
+  costGems        Int
+  effect          Json
+  icon            String
+  available       Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+
+  @@index([type])
+  @@index([available])
+}
+
+model LeagueSnapshot {
+  id              String      @id @default(cuid())
+  league          League
+  week            Int
+  year            Int
+  userRanks       Json
+  teamRanks       Json
+  promotedUsers   String[]
+  demotedUsers    String[]
+  createdAt       DateTime    @default(now())
+
+  @@unique([league, week, year])
+}
+
+model EventLog {
+  id              String      @id @default(cuid())
+  type            EventType
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  teamId          String?
+  team            Team?       @relation(fields: [teamId], references: [id])
+  payload         Json
+  createdAt       DateTime    @default(now())
+
+  @@index([type])
+  @@index([userId])
+  @@index([teamId])
+  @@index([createdAt])
+}
+
+model FlashQuest {
+  id              String      @id @default(cuid())
+  title           String
+  description     String
+  domain          NIRDDomain
+  xpReward        Int
+  gemsReward      Int
+  duration        Int         // in minutes
+  startsAt        DateTime
+  endsAt          DateTime
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+
+  @@index([active])
+  @@index([endsAt])
+}
