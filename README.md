@@ -573,12 +573,6 @@ Les contributions sont les bienvenues ! Pour contribuer :
 
 ---
 
-## 👥 Auteurs
-
-- **Votre Nom** - *Développeur Principal* - [GitHub](https://github.com/votre-username)
-
----
-
 ## 📄 Licence
 
 Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
